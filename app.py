@@ -8,6 +8,8 @@ import re
 import json
 import requests
 from flask import Flask, request, jsonify, render_template
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 
