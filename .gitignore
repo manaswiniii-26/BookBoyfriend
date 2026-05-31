@@ -1,0 +1,14 @@
+# Python caching
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Environment variables / Secrets
+.env
+.flaskenv
+
+# Local IDE configuration
+.vscode/
+.idea/

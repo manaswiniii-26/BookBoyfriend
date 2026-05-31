@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>#BookBoyfriend — The Bibliotherapy Anchor</title>
+
+  <!-- Google Fonts: Playfair Display (headings) + Lora (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    /* =========================================================
+       CSS CUSTOM PROPERTIES — Full design system
+    ========================================================= */
+    :root {
+      /* Core palette — deep dark academia */
+      --bg-void:        #0e0c0a;   /* near-black base */
+      --bg-surface:     #161310;   /* card/sidebar backgrounds */
+      --bg-elevated:    #1e1a16;   /* chat window background */
+      --bg-input:       #252017;   /* input bar */
+      --border:         #2e2820;   /* subtle dividers */
+      --border-glow:    #4a3f31;   /* slightly brighter borders on hover */
+
+      /* Text */
+      --text-primary:   #e8dcc8;   /* warm cream — main text */
+      --text-secondary: #9a8a72;   /* muted warm tan — metadata */
+      --text-ghost:     #544a3c;   /* very muted — placeholder */
+
+      /* Accents */
+      --gold:           #c49a3a;   /* antique gold for decoration */
+      --gold-dim:       #7a5e22;   /* dimmer gold */
+      --cream:          #f0e6d0;   /* near-white cream */
+
+      /* Character accent colors (overridden by JS per selection) */
+      --char-accent:    #7C5C3A;   /* default: Xaden's amber */
+      --char-accent-dim: #4a3620;  /* dimmer version for backgrounds */
+
+      /* Typography */
+      --font-display:  'Playfair Display', Georgia, serif;
+      --font-body:     'Lora', Georgia, serif;
+
+      /* Spacing */
+      --radius-sm:  6px;
+      --radius-md:  12px;
+      --radius-lg:  20px;
+      --radius-xl:  28px;
+
+      /* Transitions */
+      --transition: 0.25s ease;
+    }
+
+    /* =========================================================
+       RESET & BASE
+    ========================================================= */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden; /* prevent body scroll; only chat window scrolls */
+    }
+
+    body {
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--text-primary);
+      background-color: var(--bg-void);
+
+      /* Subtle noise-like grain texture via SVG data URL */
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    }
+
+    /* =========================================================
+       LAYOUT — CSS Grid: sidebar | main
+    ========================================================= */
+    .app-shell {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      grid-template-rows: 100vh;
+      height: 100vh;
+    }
+
+    /* =========================================================
+       SIDEBAR
+    ========================================================= */
+    .sidebar {
+      background-color: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Decorative top edge line in gold */
+    .sidebar::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: 0.6;
+    }
+
+    /* ---- Sidebar Header ---- */
+    .sidebar-header {
+      padding: 28px 20px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-logo {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+
+    .sidebar-title {
+      font-family: var(--font-display);
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--cream);
+      line-height: 1.25;
+      font-style: italic;
+    }
+
+    .sidebar-subtitle {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      margin-top: 5px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ---- Section Label ---- */
+    .sidebar-section-label {
+      font-family: var(--font-display);
+      font-size: 9.5px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      padding: 20px 20px 10px;
+    }
+
+    /* ---- Character Cards ---- */
+    .character-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 12px 12px;
+    }
+
+    /* Custom scrollbar */
+    .character-list::-webkit-scrollbar { width: 4px; }
+    .character-list::-webkit-scrollbar-track { background: transparent; }
+    .character-list::-webkit-scrollbar-thumb {
+      background: var(--border-glow);
+      border-radius: 2px;
+    }
+
+    .character-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 12px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background-color var(--transition), border-color var(--transition);
+      border: 1px solid transparent;
+      margin-bottom: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .character-card:hover {
+      background-color: var(--bg-elevated);
+      border-color: var(--border);
+    }
+
+    /* Active state: tinted with character color */
+    .character-card.active {
+      background-color: var(--char-accent-dim, #3a2a18);
+      border-color: var(--char-accent, #7C5C3A);
+    }
+
+    /* Subtle left accent bar when active */
+    .character-card.active::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 20%; bottom: 20%;
+      width: 3px;
+      border-radius: 0 2px 2px 0;
+      background-color: var(--char-accent);
+    }
+
+    /* ---- Avatar Circle ---- */
+    .character-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background-color: var(--bg-void);
+      border: 1.5px solid var(--border-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      transition: border-color var(--transition), color var(--transition);
+    }
+
+    .character-card.active .character-avatar {
+      border-color: var(--char-accent);
+      color: var(--char-accent);
+    }
+
+    /* ---- Character Info ---- */
+    .character-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .character-name {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .character-book {
+      font-size: 10.5px;
+      color: var(--text-secondary);
+      font-style: italic;
+      margin-top: 1px;
+    }
+
+    .character-tagline {
+      font-size: 10px;
+      color: var(--text-ghost);
+      margin-top: 3px;
+      line-height: 1.4;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .character-card.active .character-tagline {
+      color: var(--text-secondary);
+    }
+
+    /* ---- Sidebar Footer ---- */
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      font-size: 10.5px;
+      color: var(--text-ghost);
+      line-height: 1.6;
+    }
+
+    .sidebar-footer a {
+      color: var(--gold-dim);
+      text-decoration: none;
+    }
+    .sidebar-footer a:hover { color: var(--gold); }
+
+    /* =========================================================
+       MAIN CHAT AREA
+    ========================================================= */
+    .chat-main {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background-color: var(--bg-elevated);
+    }
+
+    /* ---- Chat Header ---- */
+    .chat-header {
+      padding: 20px 28px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background-color: var(--bg-surface);
+      flex-shrink: 0;
+    }
+
+    .chat-header-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background-color: var(--bg-void);
+      border: 1.5px solid var(--char-accent, #7C5C3A);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--char-accent, #7C5C3A);
+      flex-shrink: 0;
+      transition: border-color 0.4s ease, color 0.4s ease;
+    }
+
+    .chat-header-info {
+      flex: 1;
+    }
+
+    .chat-header-name {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--cream);
+      font-style: italic;
+    }
+
+    .chat-header-tagline {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* Online/available indicator dot */
+    .chat-header-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: #5a9a68;  /* soft green */
+      box-shadow: 0 0 6px #5a9a6899;
+      animation: pulse-dot 2.5s ease infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.55; transform: scale(0.85); }
+    }
+
+    /* ---- Chat Window (scrollable) ---- */
+    .chat-window {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 28px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      scroll-behavior: smooth;
+    }
+
+    .chat-window::-webkit-scrollbar { width: 5px; }
+    .chat-window::-webkit-scrollbar-track { background: transparent; }
+    .chat-window::-webkit-scrollbar-thumb {
+      background: var(--border-glow);
+      border-radius: 3px;
+    }
+
+    /* ---- Welcome / Empty State ---- */
+    .welcome-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      text-align: center;
+      padding: 40px 20px;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+    }
+
+    .welcome-state.hidden {
+      display: none;
+    }
+
+    .welcome-ornament {
+      font-size: 36px;
+      margin-bottom: 18px;
+      opacity: 0.5;
+    }
+
+    .welcome-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 600;
+      font-style: italic;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .welcome-body {
+      font-size: 13.5px;
+      color: var(--text-ghost);
+      max-width: 360px;
+      line-height: 1.7;
+    }
+
+    /* ---- Message Bubbles ---- */
+    .message {
+      display: flex;
+      flex-direction: column;
+      max-width: 72%;
+      animation: fade-up 0.3s ease both;
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* User message — right-aligned */
+    .message.user {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    /* Character message — left-aligned */
+    .message.character {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    /* Message sender label */
+    .message-label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      color: var(--text-ghost);
+    }
+
+    .message.character .message-label {
+      color: var(--char-accent, #7C5C3A);
+    }
+
+    /* Bubble */
+    .message-bubble {
+      padding: 13px 17px;
+      border-radius: var(--radius-lg);
+      line-height: 1.7;
+      font-size: 14.5px;
+      position: relative;
+    }
+
+    /* User bubble — muted, dark */
+    .message.user .message-bubble {
+      background-color: var(--bg-input);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-bottom-right-radius: var(--radius-sm);
+    }
+
+    /* Character bubble — subtle tint from char accent */
+    .message.character .message-bubble {
+      background-color: var(--char-accent-dim, #3a2a18);
+      color: var(--cream);
+      border: 1px solid var(--char-accent, #7C5C3A);
+      border-opacity: 0.4;
+      border-bottom-left-radius: var(--radius-sm);
+      border-color: color-mix(in srgb, var(--char-accent, #7C5C3A) 45%, transparent);
+    }
+
+    /* Crisis message — special warm styling */
+    .message.crisis .message-bubble {
+      background-color: #1e1720;
+      border-color: #7a5a9a;
+      color: #d4c0e8;
+    }
+
+    /* Timestamp */
+    .message-time {
+      font-size: 10px;
+      color: var(--text-ghost);
+      margin-top: 4px;
+    }
+
+    /* ---- Typing Indicator ---- */
+    .typing-indicator {
+      display: none;  /* shown by JS */
+      align-self: flex-start;
+      background-color: var(--char-accent-dim, #3a2a18);
+      border: 1px solid color-mix(in srgb, var(--char-accent, #7C5C3A) 40%, transparent);
+      border-radius: var(--radius-lg);
+      border-bottom-left-radius: var(--radius-sm);
+      padding: 14px 20px;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .typing-indicator.visible {
+      display: flex;
+    }
+
+    .typing-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--char-accent, #7C5C3A);
+      animation: typing-bounce 1.4s ease infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing-bounce {
+      0%, 60%, 100% { transform: translateY(0);    opacity: 0.5; }
+      30%            { transform: translateY(-5px); opacity: 1;   }
+    }
+
+    /* =========================================================
+       INPUT BAR
+    ========================================================= */
+    .chat-input-bar {
+      padding: 16px 24px 20px;
+      border-top: 1px solid var(--border);
+      background-color: var(--bg-surface);
+      flex-shrink: 0;
+    }
+
+    .input-wrapper {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 10px 14px 10px 20px;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--char-accent, #7C5C3A);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--char-accent, #7C5C3A) 15%, transparent);
+    }
+
+    #message-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 14.5px;
+      line-height: 1.6;
+      resize: none;
+      min-height: 24px;
+      max-height: 120px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+
+      /* Match body grain placeholder */
+      &::placeholder { color: var(--text-ghost); }
+    }
+
+    #send-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background-color: var(--char-accent, #7C5C3A);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background-color var(--transition), transform 0.15s ease, opacity var(--transition);
+      opacity: 0.7;
+    }
+
+    #send-btn:hover { opacity: 1; transform: scale(1.06); }
+    #send-btn:active { transform: scale(0.95); }
+    #send-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+    /* Arrow icon SVG inside the button */
+    #send-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: #fff;
+    }
+
+    .input-hint {
+      font-size: 10.5px;
+      color: var(--text-ghost);
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    /* =========================================================
+       DECORATIVE ELEMENTS
+    ========================================================= */
+
+    /* Subtle top border on whole app — gold gradient */
+    .app-shell::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--gold) 30%, var(--gold) 70%, transparent 100%);
+      opacity: 0.35;
+      z-index: 100;
+    }
+
+    /* =========================================================
+       RESPONSIVE — narrow screens
+    ========================================================= */
+    @media (max-width: 700px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .sidebar-header {
+        padding: 16px 16px 14px;
+      }
+
+      .character-list {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        padding: 4px 12px 12px;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+
+      .character-card {
+        min-width: 180px;
+        margin-bottom: 0;
+      }
+
+      .sidebar-footer { display: none; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="app-shell">
+
+  <!-- ===================================================
+       SIDEBAR — Character Selection
+  ==================================================== -->
+  <aside class="sidebar" role="navigation" aria-label="Character selection">
+
+    <div class="sidebar-header">
+      <div class="sidebar-logo">✦ Bibliotherapy Anchor</div>
+      <div class="sidebar-title">#BookBoyfriend</div>
+      <div class="sidebar-subtitle">A safe space to feel heard.</div>
+    </div>
+
+    <div class="sidebar-section-label">Choose your anchor</div>
+
+    <div class="character-list" id="character-list">
+      <!-- Character cards are injected by script.js using the CHARACTERS data
+           embedded below as a JSON blob. This keeps the JS clean and avoids
+           a separate API call on page load. -->
+    </div>
+
+    <footer class="sidebar-footer">
+      This is a fictional comfort space, not a substitute for professional mental health support.
+      If you're in crisis, please reach out to <a href="https://988lifeline.org" target="_blank" rel="noopener">988 Lifeline</a> or text HOME to 741741.
+    </footer>
+
+  </aside>
+
+  <!-- ===================================================
+       MAIN — Chat interface
+  ==================================================== -->
+  <main class="chat-main" role="main">
+
+    <!-- Chat Header — shows active character info -->
+    <header class="chat-header" id="chat-header">
+      <div class="chat-header-avatar" id="header-avatar" aria-hidden="true">X</div>
+      <div class="chat-header-info">
+        <div class="chat-header-name" id="header-name">Xaden Riorson</div>
+        <div class="chat-header-tagline" id="header-tagline">He doesn't need words to hold you steady.</div>
+      </div>
+      <div class="chat-header-status">
+        <div class="status-dot"></div>
+        <span>Present</span>
+      </div>
+    </header>
+
+    <!-- Chat Window — messages render here -->
+    <div class="chat-window" id="chat-window" role="log" aria-live="polite" aria-label="Conversation">
+
+      <!-- Welcome / empty state — hidden once first message is sent -->
+      <div class="welcome-state" id="welcome-state">
+        <div class="welcome-ornament">✦</div>
+        <div class="welcome-title">You're safe here.</div>
+        <div class="welcome-body">
+          Pick a character from the sidebar and share what's on your mind.
+          This is a judgment-free space — you don't have to perform "fine."
+        </div>
+      </div>
+
+      <!-- Typing indicator — shown while waiting for character response -->
+      <div class="typing-indicator" id="typing-indicator" aria-label="Character is typing" role="status">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+
+    </div><!-- /.chat-window -->
+
+    <!-- Input Bar -->
+    <div class="chat-input-bar">
+      <div class="input-wrapper">
+        <textarea
+          id="message-input"
+          rows="1"
+          placeholder="Tell them what's on your mind…"
+          aria-label="Message input"
+          maxlength="1000"
+        ></textarea>
+        <button id="send-btn" aria-label="Send message" title="Send (Enter)">
+          <!-- Send arrow SVG icon -->
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="input-hint">Press <kbd style="
+        background: var(--border);
+        border-radius: 3px;
+        padding: 1px 5px;
+        font-size: 10px;
+        color: var(--text-secondary);
+        font-family: monospace;">Enter</kbd> to send &nbsp;·&nbsp; Shift+Enter for a new line</div>
+    </div>
+
+  </main>
+</div><!-- /.app-shell -->
+
+<!-- ===================================================
+     CHARACTER DATA — passed from Flask via Jinja2
+     script.js reads window.CHARACTERS_DATA
+==================================================== -->
+<script>
+  // This object is rendered by Flask/Jinja2. It gives the frontend all
+  // character metadata WITHOUT exposing the system prompts.
+  window.CHARACTERS_DATA = {{ characters | tojson }};
+</script>
+
+<!-- Main application JavaScript -->
+<script src="/static/js/script.js"></script>
+
+</body>
+</html>
